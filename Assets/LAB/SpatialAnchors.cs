@@ -16,6 +16,8 @@ public class SpatialAnchors : MonoBehaviour
     private TextMeshProUGUI idText;
     private TextMeshProUGUI positionText;
 
+    private const float Speed = 1;
+
     // Update is called once per frame
     void Update()
     {
@@ -24,6 +26,10 @@ public class SpatialAnchors : MonoBehaviour
         {
             CreateSpatialAnchor();
         }
+
+        // Manage self position for adjustments
+        Vector2 axis = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, controller);
+        this.transform.Translate(new Vector3(axis.x, 0, axis.y) * Speed * Time.deltaTime, Space.World);
     }
     
     public void CreateSpatialAnchor()
@@ -44,6 +50,9 @@ public class SpatialAnchors : MonoBehaviour
 
         // Make the anchor become a Meta Quest Spatial Anchor
         anchor.AddComponent<OVRSpatialAnchor>();
+
+        // Add it to manager
+        anchor.transform.SetParent(this.transform);
 
         // Increase Id by 1
         count += 1;
