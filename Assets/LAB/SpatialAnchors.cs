@@ -21,6 +21,20 @@ public class SpatialAnchors : MonoBehaviour
     // Calibration Interop
     public TCP Server;
     private bool HasCalibrated = false;
+    
+    private Transform UnityMarkerOwner;
+    private Transform RealsenseMarkerOwner;
+
+    public void Start()
+    {
+        UnityMarkerOwner = this.transform.Find("UnityCreated");
+        if (UnityMarkerOwner == null)
+            Debug.LogError("No UnityCreated found");
+        
+        RealsenseMarkerOwner = this.transform.Find("RealsenseCreated");
+        if (RealsenseMarkerOwner == null)
+            Debug.LogError("No RealsenseCreated found");
+    }
 
     // Update is called once per frame
     void Update()
@@ -36,15 +50,10 @@ public class SpatialAnchors : MonoBehaviour
         Vector2 topAxis = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, Controller.LTouch);
         Vector3 translation = new Vector3(sideAxis.x, topAxis.y, sideAxis.y) * Speed * Time.deltaTime;
 
-        //this.transform
-        var parent = this.transform.Find("UnityCreated");
-        foreach (Transform child in parent)
-        {
-            var targetTransform = child.Find("transform");
-            targetTransform.Translate(translation, Space.World);
-        }
+        RealsenseMarkerOwner.Rotate(Vector3.up, topAxis.x * Mathf.Rad2Deg * Speed * Time.deltaTime);
+        RealsenseMarkerOwner.Translate(translation, Space.World);
         
-        if (HasCalibrated == false && OVRInput.Get(OVRInput.Button.One))
+        if (HasCalibrated == false && OVRInput.Get(OVRInput.Button.One) && UnityMarkerOwner.childCount >= 4)
         {
             Server.ShouldSendCalibrate = true;
             Debug.LogWarning("CONTROLLER: Sent calibrate request");
@@ -71,9 +80,7 @@ public class SpatialAnchors : MonoBehaviour
         anchor.AddComponent<OVRSpatialAnchor>();
 
         // Add it to manager
-        var parentTransform = this.transform.Find("UnityCreated");
-        // Debug.LogWarning($"CONTROLLER: parentTransform is null {parentTransform == null}");
-        anchor.transform.SetParent(parentTransform);
+        anchor.transform.SetParent(UnityMarkerOwner);
 
         // Increase Id by 1
         count += 1;
@@ -82,7 +89,8 @@ public class SpatialAnchors : MonoBehaviour
     public GameObject CreateSpatialAnchorForRealsense(Vector3 position, int id)
     {
         // Create anchor at Controller Position and Rotation
-        GameObject anchor = Instantiate(anchorPrefab, position, Quaternion.identity);
+        GameObject anchor = Instantiate(anchorPrefab, Vector3.zero, Quaternion.identity);
+        anchor.transform.localPosition = position;
         anchor.name = id.ToString();
         
         canvas = anchor.GetComponentInChildren<Canvas>();
@@ -94,14 +102,8 @@ public class SpatialAnchors : MonoBehaviour
         // Show anchor position
         positionText = canvas.gameObject.transform.GetChild(1).GetComponent<TextMeshProUGUI>();
         positionText.text = anchor.transform.GetChild(0).GetChild(0).position.ToString();
-
-        // Make the anchor become a Meta Quest Spatial Anchor
-        anchor.AddComponent<OVRSpatialAnchor>();
-
-        // Add it to manager
-        var parentTransform = this.transform.Find("RealsenseCreated");
-        // Debug.LogWarning($"CONTROLLER: parentTransform is null {parentTransform == null}");
-        anchor.transform.SetParent(parentTransform);
+        
+        anchor.transform.SetParent(RealsenseMarkerOwner);
 
         return anchor;
     }

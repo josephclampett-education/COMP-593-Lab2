@@ -79,9 +79,6 @@ pipeline.start(config)
 # ================
 
 try:
-	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-		sock.connect((HOST, PORT))
-
 		while True:
 			# try:
 				# ==== FRAME QUERYING ====
@@ -109,63 +106,35 @@ try:
 					centerZ = depth_frame.get_distance(centerSS[0], centerSS[1])
 
 					centerWS = rs.rs2_deproject_pixel_to_point(depthIntrinsics, centerSS, centerZ)
+
+					print(centerWS)
 					
 					id = ids[i][0]
 					MarkerCentroids[id] = centerWS
 					if MarkerAges[id] != -2:
 						MarkerAges[id] = CurrentTime
 
-				# ==== SERVER MESSAGES ====
-				if HasCalibrated == False:
-					msg = receive(sock)
+				# ==== DEBUG START ====
+				if DEBUG:
+					color_image = cv2.aruco.drawDetectedMarkers(color_image,corners,ids)
+					depth_image = np.asanyarray(depth_frame.get_data())
+					depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
 
-					# Really shouldn't need this line
-					if (len(msg) == 0):
-						continue
+					depth_colormap_dim = depth_colormap.shape
+					color_colormap_dim = color_image.shape
 
-					incomingIds = msg["OutgoingIds"]
-					incomingPositions = msg["OutgoingPositions"]
+					# If depth and color resolutions are different, resize color image to match depth image for display
+					if depth_colormap_dim != color_colormap_dim:
+						resized_color_image = cv2.resize(color_image, dsize=(depth_colormap_dim[1], depth_colormap_dim[0]), interpolation=cv2.INTER_AREA)
+						images = np.hstack((resized_color_image, depth_colormap))
+					else:
+						images = np.hstack((color_image, depth_colormap))
 
-					incomingCount = len(incomingIds)
-
-					inPointList = np.zeros((incomingCount, 4))
-					outPointList = np.zeros((incomingCount, 4))
-					for i, incomingId in enumerate(incomingIds):
-						id = incomingId
-						pos = incomingPositions[i]
-
-						MarkerAges[id] = -2 # Lock the lifetime to indicate use in calibration
-
-						inPointList[i] = np.append(MarkerCentroids[id], 1.0)
-						outPointList[i] = [pos['x'], pos['y'], pos['z'], 1.0]
-
-					CalibrationMatrix, residuals, rank, s = np.linalg.lstsq(inPointList, outPointList, rcond = None)
-					print("Calibration Matrix:", CalibrationMatrix)
-
-					HasCalibrated = True
-				else:
-					outMarkerIds = []
-					outMarkerCentroids = []
-					for i, markerAge in enumerate(MarkerAges):
-						# Ignore calibrants and unencountereds
-						if markerAge < 0:
-							continue
-
-						outId = i
-						outMarkerCentroid = {"x": -999.0, "y": -999.0, "z": -999.0}
-						if (CurrentTime - markerAge) > LIFETIME_THRESHOLD:
-							outMarkerCentroid = {"x": -999.0, "y": -999.0, "z": -999.0}
-						else:
-							centroid = MarkerCentroids[i]
-							centroid = CalibrationMatrix.transpose().dot(np.append(centroid, 1.0))
-							outMarkerCentroid = {"x": centroid[0].item(), "y": centroid[1].item(), "z": centroid[2].item()}
-						
-						outMarkerIds.append(outId)
-						outMarkerCentroids.append(outMarkerCentroid)
-
-					msg["IncomingIds"] = outMarkerIds
-					msg["IncomingPositions"] = outMarkerCentroids
-					send(sock, msg)
+					# Show images
+					cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
+					cv2.imshow('RealSense', images)
+					cv2.waitKey(1)
+				# ==== DEBUG END ====
 
 				CurrentTime += 1
 			# except KeyboardInterrupt:

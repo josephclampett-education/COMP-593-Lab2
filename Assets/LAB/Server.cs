@@ -29,6 +29,9 @@ public class TCP : MonoBehaviour
     public bool ShouldSendCalibrate = false;
 
     public SpatialAnchors AnchorManager;
+    
+    private Transform UnityMarker;
+    private Transform UnityMarkerOwner;
     private Transform RealsenseMarkerOwner;
     
     [Serializable]
@@ -49,6 +52,10 @@ public class TCP : MonoBehaviour
 
     private void Start()
     {
+        UnityMarkerOwner = AnchorManager.transform.Find("UnityCreated");
+        if (UnityMarkerOwner == null)
+            Debug.LogError("No UnityCreated found");
+        
         RealsenseMarkerOwner = AnchorManager.transform.Find("RealsenseCreated");
         if (RealsenseMarkerOwner == null)
             Debug.LogError("No RealsenseCreated found");
@@ -59,30 +66,32 @@ public class TCP : MonoBehaviour
 
     private bool ServerConnected = false;
 
+    //private static int[] TempLut = new int[] { 9, 8, 5, 1 };
+    private static int[] TempLut = new int[] { 1, 2, 3, 4 };
+
     private void Update()
     {
         if (ServerConnected == false)
             return;
         
-        // // Send message to client every 2 second
-        // if(Time.time > timer)
-        // {
         if (ShouldSendCalibrate)
         {
             Message msg = new Message();
 
-            Transform unityCreatedObject = GameObject.Find("UnityCreated").transform;
-            int childCount = unityCreatedObject.childCount;
+            int childCount = UnityMarkerOwner.childCount;
             
             msg.OutgoingIds = new int[childCount];
             msg.OutgoingPositions = new Vector3[childCount];
             for (int i = 0; i < childCount; i++)
             {
-                Transform anchor = unityCreatedObject.GetChild(i);
-                anchor = anchor.GetChild(0);
+                Transform anchor = UnityMarkerOwner.GetChild(i);
+                //anchor = anchor.GetChild(0);
                 
-                msg.OutgoingIds[i] = i + 1;
+                //msg.OutgoingIds[i] = i + 1;
+                msg.OutgoingIds[i] = TempLut[i];
                 msg.OutgoingPositions[i] = anchor.position;
+                
+                Debug.LogWarning($"Position: {anchor.position}");
             }
             
             Debug.Log($"Sent positions for {childCount} anchors!");
@@ -91,10 +100,7 @@ public class TCP : MonoBehaviour
             
             SendMessageToClient(msg);
         }
-            
-        //     timer = Time.time + 2f;
-        // }
-        // Process message queue
+        
         lock(Lock)
         {
             foreach (Message message in MessageQueue)
@@ -109,7 +115,8 @@ public class TCP : MonoBehaviour
                     Transform markerObject = RealsenseMarkerOwner.Find(id.ToString());
                     if (incomingPosition == QUEUE_REMOVAL_POSITION)
                     {
-                        Destroy(markerObject.gameObject);
+                        if (markerObject != null)
+                            Destroy(markerObject.gameObject);
                     }
                     else
                     {
@@ -119,7 +126,7 @@ public class TCP : MonoBehaviour
                         }
                         else
                         {
-                            markerObject.position = incomingPosition;
+                            markerObject.localPosition = incomingPosition;
                         }
                     }
                 }
