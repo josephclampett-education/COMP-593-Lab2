@@ -140,7 +140,10 @@ try:
 						outPointList[i] = [pos['x'], pos['y'], pos['z'], 1.0]
 
 					CalibrationMatrix, residuals, rank, s = np.linalg.lstsq(inPointList, outPointList, rcond = None)
-					print("Calibration Matrix:", CalibrationMatrix)
+					
+					outMatrix = CalibrationMatrix.tolist()
+					with open("CalibrationMatrix.json", 'w') as json_file:
+						json.dump(outMatrix, json_file)
 
 					HasCalibrated = True
 				else:

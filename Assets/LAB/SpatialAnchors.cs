@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using OpenCover.Framework.Model;
 using UnityEngine;
 using static OVRInput;
 using TMPro;
@@ -58,6 +59,12 @@ public class SpatialAnchors : MonoBehaviour
             Server.ShouldSendCalibrate = true;
             Debug.LogWarning("CONTROLLER: Sent calibrate request");
             HasCalibrated = true;
+        }
+
+        if (HasCalibrated == true && OVRInput.Get(OVRInput.Button.Two))
+        {
+            string outJSONPosition = JsonUtility.ToJson(RealsenseMarkerOwner.position);
+            System.IO.File.WriteAllText("CalibrationPostShift.json", outJSONPosition);
         }
     }
     
