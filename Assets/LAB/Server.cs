@@ -66,8 +66,7 @@ public class TCP : MonoBehaviour
 
     private bool ServerConnected = false;
 
-    //private static int[] TempLut = new int[] { 9, 8, 5, 1 };
-    private static int[] TempLut = new int[] { 1, 2, 3, 4 };
+    private static int[] MarkerIndexToIdLUT = new int[] { 3, 5, 10, 50 };
 
     private void Update()
     {
@@ -85,10 +84,8 @@ public class TCP : MonoBehaviour
             for (int i = 0; i < childCount; i++)
             {
                 Transform anchor = UnityMarkerOwner.GetChild(i);
-                //anchor = anchor.GetChild(0);
                 
-                //msg.OutgoingIds[i] = i + 1;
-                msg.OutgoingIds[i] = TempLut[i];
+                msg.OutgoingIds[i] = MarkerIndexToIdLUT[i];
                 msg.OutgoingPositions[i] = anchor.position;
                 
                 Debug.LogWarning($"Position: {anchor.position}");

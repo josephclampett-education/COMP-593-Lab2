@@ -106,11 +106,11 @@ try:
 					centerZ = depth_frame.get_distance(centerSS[0], centerSS[1])
 
 					centerWS = rs.rs2_deproject_pixel_to_point(depthIntrinsics, centerSS, centerZ)
-
-					print(centerWS)
 					
 					id = ids[i][0]
 					MarkerCentroids[id] = centerWS
+					print(f"{id}: {centerWS}")
+
 					if MarkerAges[id] != -2:
 						MarkerAges[id] = CurrentTime
 
