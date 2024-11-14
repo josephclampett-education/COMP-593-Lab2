@@ -145,7 +145,6 @@ try:
 						# outPointList[i] = [pos['x'], pos['y'], pos['z']]
 
 					CalibrationMatrix, residuals, rank, s = np.linalg.lstsq(inPointList, outPointList, rcond = None)
-					# CalibrationMatrix = cv2.findHomography(inPointList, outPointList)
 
 					outMatrix = CalibrationMatrix.tolist()
 					with open("CalibrationMatrix.json", 'w') as json_file:
